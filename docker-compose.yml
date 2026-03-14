@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # Servicio de MongoDB
+  mongodb:
+    image: mongo:6
+    container_name: adoptme-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: adoptme
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+    networks:
+      - adoptme-network
+
+  # Servicio de la aplicación
+  app:
+    build: .
+    container_name: adoptme-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - NODE_ENV=production
+      - MONGO_URL=mongodb://admin:password123@mongodb:27017/adoptme?authSource=admin
+    depends_on:
+      - mongodb
+    networks:
+      - adoptme-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8080/api/users', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# Volúmenes persistentes
+volumes:
+  mongo-data:
+    driver: local
+  mongo-config:
+    driver: local
+
+# Red personalizada
+networks:
+  adoptme-network:
+    driver: bridge
