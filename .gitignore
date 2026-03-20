@@ -30,8 +30,7 @@ Thumbs.db
 .classpath
 .settings/
 
-# Tests
-/test/
+# Tests (solo resultados, no el código de tests)
 coverage/
 .nyc_output/
 
