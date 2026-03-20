@@ -1,0 +1,625 @@
+openapi: 3.0.1
+info:
+  title: API AdoptMe
+  version: 1.0.0
+  description: Sistema de adopción de mascotas - API REST con Express y MongoDB
+  contact:
+    name: David Gallo
+    email: contacto@adoptme.com
+  license:
+    name: ISC
+
+servers:
+  - url: http://localhost:8080
+    description: Servidor local de desarrollo
+  - url: https://adoptme-backend.onrender.com
+    description: Servidor de producción
+
+tags:
+  - name: Users
+    description: Gestión de usuarios
+  - name: Pets
+    description: Gestión de mascotas
+  - name: Adoptions
+    description: Sistema de adopciones
+  - name: Sessions
+    description: Autenticación y sesiones
+  - name: Mocks
+    description: Generación de datos de prueba
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: ID único del usuario
+          example: "507f1f77bcf86cd799439011"
+        first_name:
+          type: string
+          description: Nombre del usuario
+          example: "Juan"
+        last_name:
+          type: string
+          description: Apellido del usuario
+          example: "Pérez"
+        email:
+          type: string
+          format: email
+          description: Email del usuario
+          example: "juan.perez@example.com"
+        password:
+          type: string
+          description: Contraseña hasheada
+        role:
+          type: string
+          enum: [user, admin]
+          description: Rol del usuario
+          example: "user"
+        pets:
+          type: array
+          items:
+            type: string
+          description: IDs de mascotas adoptadas
+          example: []
+
+    UserInput:
+      type: object
+      required:
+        - first_name
+        - last_name
+        - email
+      properties:
+        first_name:
+          type: string
+          minLength: 2
+          example: "Juan"
+        last_name:
+          type: string
+          minLength: 2
+          example: "Pérez"
+        email:
+          type: string
+          format: email
+          example: "juan.perez@example.com"
+        password:
+          type: string
+          minLength: 6
+          example: "password123"
+        role:
+          type: string
+          enum: [user, admin]
+          example: "user"
+
+    Pet:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+        name:
+          type: string
+          example: "Max"
+        specie:
+          type: string
+          enum: [Dog, Cat, Bird, Rabbit, Fish, Other]
+          example: "Dog"
+        birthDate:
+          type: string
+          format: date
+          example: "2020-01-15"
+        adopted:
+          type: boolean
+          example: false
+        owner:
+          type: string
+          description: ID del dueño
+          example: null
+        image:
+          type: string
+          example: "/uploads/pet-image.jpg"
+
+    Adoption:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "507f1f77bcf86cd799439011"
+        owner:
+          type: string
+          description: ID del usuario adoptante
+          example: "507f1f77bcf86cd799439011"
+        pet:
+          type: string
+          description: ID de la mascota adoptada
+          example: "507f1f77bcf86cd799439012"
+
+    SuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "success"
+        payload:
+          type: object
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "error"
+        error:
+          type: string
+          example: "Error message"
+
+paths:
+  /api/users:
+    get:
+      tags:
+        - Users
+      summary: Obtener todos los usuarios
+      description: Retorna una lista con todos los usuarios registrados en el sistema
+      responses:
+        '200':
+          description: Lista de usuarios obtenida exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  payload:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+        '500':
+          description: Error del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/users/{uid}:
+    get:
+      tags:
+        - Users
+      summary: Obtener un usuario por ID
+      description: Retorna la información detallada de un usuario específico
+      parameters:
+        - in: path
+          name: uid
+          required: true
+          schema:
+            type: string
+          description: ID del usuario (formato MongoDB ObjectId)
+          example: "507f1f77bcf86cd799439011"
+      responses:
+        '200':
+          description: Usuario encontrado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  payload:
+                    $ref: '#/components/schemas/User'
+        '400':
+          description: ID inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  error:
+                    type: string
+                    example: "User not found"
+        '500':
+          description: Error del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Users
+      summary: Actualizar un usuario
+      description: Actualiza la información de un usuario existente
+      parameters:
+        - in: path
+          name: uid
+          required: true
+          schema:
+            type: string
+          description: ID del usuario a actualizar
+          example: "507f1f77bcf86cd799439011"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserInput'
+      responses:
+        '200':
+          description: Usuario actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "User updated"
+        '400':
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  error:
+                    type: string
+                    example: "User not found"
+        '500':
+          description: Error del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Users
+      summary: Eliminar un usuario
+      description: Elimina un usuario del sistema de forma permanente
+      parameters:
+        - in: path
+          name: uid
+          required: true
+          schema:
+            type: string
+          description: ID del usuario a eliminar
+          example: "507f1f77bcf86cd799439011"
+      responses:
+        '200':
+          description: Usuario eliminado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "User deleted"
+        '400':
+          description: ID inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/pets:
+    get:
+      tags:
+        - Pets
+      summary: Obtener todas las mascotas
+      description: Retorna la lista completa de mascotas registradas
+      responses:
+        '200':
+          description: Lista de mascotas obtenida exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  payload:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Pet'
+
+    post:
+      tags:
+        - Pets
+      summary: Crear una mascota
+      description: Registra una nueva mascota en el sistema
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - specie
+              properties:
+                name:
+                  type: string
+                  example: "Max"
+                specie:
+                  type: string
+                  example: "Dog"
+                birthDate:
+                  type: string
+                  format: date
+                  example: "2020-01-15"
+      responses:
+        '200':
+          description: Mascota creada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  payload:
+                    $ref: '#/components/schemas/Pet'
+
+  /api/adoptions:
+    get:
+      tags:
+        - Adoptions
+      summary: Obtener todas las adopciones
+      description: Retorna el historial completo de adopciones realizadas
+      responses:
+        '200':
+          description: Lista de adopciones obtenida exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  payload:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Adoption'
+
+  /api/adoptions/{aid}:
+    get:
+      tags:
+        - Adoptions
+      summary: Obtener una adopción por ID
+      description: Retorna los detalles de una adopción específica
+      parameters:
+        - in: path
+          name: aid
+          required: true
+          schema:
+            type: string
+          description: ID de la adopción
+          example: "507f1f77bcf86cd799439011"
+      responses:
+        '200':
+          description: Adopción encontrada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  payload:
+                    $ref: '#/components/schemas/Adoption'
+        '404':
+          description: Adopción no encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  error:
+                    type: string
+                    example: "Adoption not found"
+
+  /api/adoptions/{uid}/{pid}:
+    post:
+      tags:
+        - Adoptions
+      summary: Crear una adopción
+      description: Registra la adopción de una mascota por parte de un usuario
+      parameters:
+        - in: path
+          name: uid
+          required: true
+          schema:
+            type: string
+          description: ID del usuario adoptante
+          example: "507f1f77bcf86cd799439011"
+        - in: path
+          name: pid
+          required: true
+          schema:
+            type: string
+          description: ID de la mascota a adoptar
+          example: "507f1f77bcf86cd799439012"
+      responses:
+        '200':
+          description: Adopción registrada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "Pet adopted"
+        '400':
+          description: Mascota ya adoptada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  error:
+                    type: string
+                    example: "Pet is already adopted"
+        '404':
+          description: Usuario o mascota no encontrados
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  error:
+                    type: string
+                    example: "user Not found"
+
+  /api/sessions/register:
+    post:
+      tags:
+        - Sessions
+      summary: Registrar nuevo usuario
+      description: Crea una cuenta de usuario nueva en el sistema
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserInput'
+      responses:
+        '200':
+          description: Usuario registrado exitosamente
+
+  /api/sessions/login:
+    post:
+      tags:
+        - Sessions
+      summary: Iniciar sesión
+      description: Autentica un usuario en el sistema
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  example: "juan.perez@example.com"
+                password:
+                  type: string
+                  example: "password123"
+      responses:
+        '200':
+          description: Sesión iniciada exitosamente
+
+  /api/mocks/mockingusers:
+    get:
+      tags:
+        - Mocks
+      summary: Generar usuarios de prueba
+      description: Genera 50 usuarios mock para testing
+      parameters:
+        - in: query
+          name: num
+          schema:
+            type: integer
+          description: Número de usuarios a generar (opcional)
+          example: 10
+      responses:
+        '200':
+          description: Usuarios generados exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  payload:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+
+  /api/mocks/mockingpets:
+    get:
+      tags:
+        - Mocks
+      summary: Generar mascotas de prueba
+      description: Genera 100 mascotas mock para testing
+      parameters:
+        - in: query
+          name: num
+          schema:
+            type: integer
+          description: Número de mascotas a generar (opcional)
+          example: 20
+      responses:
+        '200':
+          description: Mascotas generadas exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  payload:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Pet'

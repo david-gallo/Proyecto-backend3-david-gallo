@@ -1,11 +1,13 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import cookieParser from 'cookie-parser';
-import swaggerJSDoc from 'swagger-jsdoc';
 import swaggerUiExpress from 'swagger-ui-express';
+import YAML from 'yamljs';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
 import usersRouter from './routes/users.router.js';
 import petsRouter from './routes/pets.router.js';
@@ -16,6 +18,9 @@ import mocksRouter from './routes/mocks.router.js';
 // Cargar variables de entorno
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 const app = express();
 const PORT = process.env.PORT || 8080;
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017/adoptme';
@@ -25,20 +30,8 @@ mongoose.connect(MONGO_URL)
     .then(() => console.log('✅ Conectado a MongoDB'))
     .catch(err => console.error('❌ Error al conectar a MongoDB:', err));
 
-// Configuración de Swagger
-const swaggerOptions = {
-    definition: {
-        openapi: '3.0.1',
-        info: {
-            title: 'Documentación API AdoptMe',
-            version: '1.0.0',
-            description: 'API para el sistema de adopción de mascotas'
-        }
-    },
-    apis: ['./src/routes/*.js']
-};
-
-const swaggerSpecs = swaggerJSDoc(swaggerOptions);
+// Cargar documentación Swagger desde archivo YAML
+const swaggerDocument = YAML.load(join(__dirname, 'docs', 'swagger.yaml'));
 
 // Configuración de CORS
 app.use(cors({
@@ -58,7 +51,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Ruta de documentación Swagger
-app.use('/api-docs', swaggerUiExpress.serve, swaggerUiExpress.setup(swaggerSpecs));
+app.use('/api-docs', swaggerUiExpress.serve, swaggerUiExpress.setup(swaggerDocument));
 
 // Rutas
 app.use('/api/users',usersRouter);
