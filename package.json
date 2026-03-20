@@ -7,8 +7,10 @@
   "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
-    "test": "mocha test/supertest.test.js",
-    "test:adoptions": "mocha test/adoptions.test.js",
+    "test": "mocha test/**/*.test.js --timeout 10000",
+    "test:adoptions": "mocha test/adoptions.test.js --timeout 10000",
+    "test:users": "mocha test/users.test.js --timeout 10000",
+    "test:pets": "mocha test/pets.test.js --timeout 10000",
     "docker:build": "docker build -t adoptme-backend .",
     "docker:run": "docker-compose up -d"
   },

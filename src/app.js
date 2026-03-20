@@ -14,6 +14,7 @@ import petsRouter from './routes/pets.router.js';
 import adoptionsRouter from './routes/adoption.router.js';
 import sessionsRouter from './routes/sessions.router.js';
 import mocksRouter from './routes/mocks.router.js';
+import { errorHandler } from './middlewares/errorHandler.js';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -69,6 +70,9 @@ app.get('/health', (req, res) => {
 app.use((req, res) => {
     res.status(404).send({ status: 'error', error: 'Ruta no encontrada' });
 });
+
+// Middleware global de manejo de errores (debe ir al final)
+app.use(errorHandler);
 
 // Solo iniciar el servidor si no estamos en modo test
 if (process.env.NODE_ENV !== 'test') {
